@@ -1,5 +1,5 @@
-const CACHE='masterstamp-v1';
-const FILES=['./','./index.html','./manifest.json','./icon-192.png','./icon-512.png'];
+const CACHE='masterstamp-v11';
+const FILES=['./','./index.html','./manifest.json','./icon-192.png','./icon-512.png','./favicon.ico','./favicon-32.png','./favicon-48.png'];
 self.addEventListener('install',e=>e.waitUntil(caches.open(CACHE).then(c=>c.addAll(FILES))));
 self.addEventListener('activate',e=>e.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k!==CACHE).map(k=>caches.delete(k))))));
 self.addEventListener('fetch',e=>{const u=new URL(e.request.url);if(u.origin!==location.origin)return;e.respondWith(caches.match(e.request).then(cached=>cached||fetch(e.request).then(r=>{if(e.request.method==='GET'&&r.ok){const copy=r.clone();caches.open(CACHE).then(c=>c.put(e.request,copy))}return r}).catch(()=>caches.match('./index.html'))))});
