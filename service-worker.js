@@ -1,4 +1,4 @@
-const CACHE='masterstamp-v16';
+const CACHE='masterstamp-v17';
 const FILES=['./','./index.html','./manifest.json','./icon-192.png','./icon-512.png','./favicon.ico','./favicon-32.png','./favicon-48.png'];
 self.addEventListener('install',e=>e.waitUntil(caches.open(CACHE).then(c=>c.addAll(FILES))));
 self.addEventListener('activate',e=>e.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k!==CACHE).map(k=>caches.delete(k))))));
