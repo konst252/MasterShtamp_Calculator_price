@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="ru">
 <head>
-<meta name="app-version" content="20">
+<meta name="app-version" content="21">
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#173a63">
@@ -29,6 +29,13 @@
  .customer-sheet{padding:10px}.customer-item{padding:8px 0}.table-wrap{border-radius:8px}.table-wrap table{min-width:980px}
  .settings-grid,.settings-grid.two{grid-template-columns:1fr 1fr}.rule-row{grid-template-columns:repeat(4,minmax(0,1fr));gap:4px;font-size:12px}.rule-row .field input{padding:7px 5px}
  .customer-total{font-size:19px}.copy-actions{gap:4px}.copy-actions .btn{font-size:11px;padding:6px 7px}.desktop-only{display:none}.mobile-only{display:block}.footer{padding:12px 0 20px}
+}
+
+/* На телефоне главная страница всегда в одну колонку: заказ, затем итог */
+@media(max-width:900px){
+ #panel-order .layout{display:flex!important;flex-direction:column!important;align-items:stretch!important;width:100%;}
+ #panel-order .layout> .card,#panel-order .layout>aside.summary{display:block;width:100%;max-width:100%;min-width:0;}
+ #panel-order .summary{position:static!important;top:auto!important;}
 }
 
 /* Persistent Google Drive update dialog */
@@ -586,7 +593,7 @@ if('serviceWorker' in navigator && /^https?:$/.test(location.protocol)){navigato
   checking=true;
   try{
    const url=new URL('index.html',location.href);url.searchParams.set('version_check',Date.now().toString());
-   const res=await fetch(url.href,{cache:'no-store',headers:{'Cache-Control':'no-cache'}});
+   const res=await fetch(url.href,{cache:'reload',headers:{'Cache-Control':'no-cache, no-store, max-age=0','Pragma':'no-cache'}});
    if(!res.ok)return;
    const html=await res.text();
    const match=html.match(/<meta\s+name=["']app-version["']\s+content=["']([^"']+)["']/i);

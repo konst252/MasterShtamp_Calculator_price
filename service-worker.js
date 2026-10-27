@@ -1,5 +1,22 @@
-const CACHE='masterstamp-v17';
+const CACHE='masterstamp-v21';
 const FILES=['./','./index.html','./manifest.json','./icon-192.png','./icon-512.png','./favicon.ico','./favicon-32.png','./favicon-48.png'];
-self.addEventListener('install',e=>e.waitUntil(caches.open(CACHE).then(c=>c.addAll(FILES))));
-self.addEventListener('activate',e=>e.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k!==CACHE).map(k=>caches.delete(k))))));
-self.addEventListener('fetch',e=>{const u=new URL(e.request.url);if(u.origin!==location.origin)return;e.respondWith(caches.match(e.request).then(cached=>cached||fetch(e.request).then(r=>{if(e.request.method==='GET'&&r.ok){const copy=r.clone();caches.open(CACHE).then(c=>c.put(e.request,copy))}return r}).catch(()=>caches.match('./index.html'))))});
+self.addEventListener('install',event=>event.waitUntil(caches.open(CACHE).then(cache=>cache.addAll(FILES)).then(()=>self.skipWaiting())));
+self.addEventListener('activate',event=>event.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(key=>key!==CACHE).map(key=>caches.delete(key)))).then(()=>self.clients.claim())));
+self.addEventListener('fetch',event=>{
+ const request=event.request;
+ const url=new URL(request.url);
+ if(url.origin!==location.origin||request.method!=='GET')return;
+ const isIndex=url.pathname.endsWith('/index.html')||url.pathname.endsWith('/');
+ const isVersionCheck=url.searchParams.has('version_check')||url.searchParams.has('app_refresh');
+ if(isIndex||isVersionCheck){
+  event.respondWith(fetch(request,{cache:'no-store'}).then(response=>{
+   if(response.ok&&!isVersionCheck){const copy=response.clone();caches.open(CACHE).then(cache=>cache.put('./index.html',copy));}
+   return response;
+  }).catch(()=>caches.match('./index.html')));
+  return;
+ }
+ event.respondWith(caches.match(request).then(cached=>cached||fetch(request).then(response=>{
+  if(response.ok){const copy=response.clone();caches.open(CACHE).then(cache=>cache.put(request,copy));}
+  return response;
+ }).catch(()=>caches.match('./index.html'))));
+});
