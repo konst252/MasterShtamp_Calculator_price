@@ -1,6 +1,7 @@
 <!doctype html>
 <html lang="ru">
 <head>
+<meta name="app-version" content="18">
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#173a63">
@@ -43,6 +44,7 @@
 .drive-update-footnote{font-size:12px!important;margin:14px 0 0!important}
 @media(max-width:480px){.drive-update-dialog{padding:22px 18px;border-radius:16px}}
 
+.manual-cell{background:#fff0c2!important;box-shadow:inset 0 0 0 1px #e5ad36}.manual-input{background:#fff8df!important;border-color:#d99b19!important}.manual-hint{font-size:10px;font-weight:700;color:#8a5a00;margin-top:1px}.app-update-banner{position:fixed;z-index:100000;left:50%;bottom:18px;transform:translateX(-50%);width:min(560px,calc(100vw - 24px));background:#173a63;color:white;padding:15px 16px;border-radius:14px;box-shadow:0 10px 35px #0005;display:none;align-items:center;gap:12px}.app-update-banner.is-visible{display:flex}.app-update-banner .update-copy{flex:1;font-weight:650}.app-update-banner .btn{background:#fff;color:#173a63;white-space:nowrap}@media(max-width:520px){.app-update-banner{align-items:stretch;flex-direction:column}.app-update-banner .btn{width:100%}}
 </style>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script src="https://apis.google.com/js/api.js" async defer></script>
@@ -121,7 +123,7 @@
 <section id="panel-catalog" class="panel">
 <div class="card"><div class="row between"><div><h2>Каталог товаров</h2><div class="muted small">Изменения вступают в силу в калькуляторе. После редактирования нажмите «Сохранить изменения».</div></div><button class="btn primary" id="addProduct">+ Добавить товар</button></div>
 <div class="row section-gap"><div class="field" style="flex:1"><label for="catalogSearch">Поиск по каталогу</label><input id="catalogSearch" type="search" placeholder="Название, модель, услуга…"></div><div class="field" style="width:210px"><label for="catalogFilter">Категория</label><select id="catalogFilter"><option value="all">Все категории</option></select></div></div>
-<div class="table-wrap section-gap"><table><thead><tr><th>Название</th><th>Закупка оснастки</th><th>Цена оснастки</th><th>Цена клише</th><th>Доп. услуга</th><th>Режим рыночной цены</th><th>Фикс. цена, ₽</th><th>Поправка, ₽</th><th>Итог</th><th></th></tr></thead><tbody id="catalogRows"></tbody></table></div><div class="muted small section-gap" id="catalogCount"></div></div>
+<div class="help section-gap">Жёлтым выделены поля с ручной корректировкой. «Цена вручную» используется только при режиме рыночной цены «Фиксированная»; если вы не задаёте отдельную рыночную цену для товара, оставьте режим «По формуле» и это поле не нужно заполнять.</div><div class="table-wrap section-gap"><table><thead><tr><th>Название</th><th>Закупка оснастки</th><th>Цена оснастки</th><th>Цена клише</th><th>Доп. услуга</th><th>Режим рыночной цены</th><th title="Цена вместо расчётной — используется только в режиме «Фиксированная»">Цена вручную, ₽</th><th>Поправка, ₽</th><th>Итог</th><th></th></tr></thead><tbody id="catalogRows"></tbody></table></div><div class="muted small section-gap" id="catalogCount"></div></div>
 </section>
 <section id="panel-settings" class="panel">
 <div class="card"><h2>Настройки расчёта</h2><div class="help">Стартовые цены и себестоимость перенесены из листа «Товары» исходного Excel. Для Colop R40, Ideal 46042 и Trodat 4642 закупочная себестоимость взята без умножения на 1,5. Текущие розничные цены из Excel сохранены до ручного пересчёта.</div>
@@ -312,7 +314,7 @@ function updateSearch(){
  const tokens=q.split(' ').filter(Boolean);
  const category=categoryEl.value||'all';
  const sort=sortEl?.value||'default';
- if(!tokens.length&&category==='all'){
+ if(!tokens.length){
   box.innerHTML='';countEl.textContent='';return;
  }
  let matches=(Array.isArray(state.products)?state.products:[]).filter(p=>!p.temporary).filter(p=>{
@@ -378,7 +380,7 @@ function renderCatalog(){
  const list=state.products.filter(p=>!p.temporary).filter(p=>(!tokens.length||tokens.every(t=>normalizeSearchText([p.name,p.category,p.width&&p.height?`${p.width}x${p.height}`:''].join(' ')).includes(t)))&&(filter==='all'||p.category===filter));
  document.getElementById('catalogRows').innerHTML=list.map(p=>{
   const mode=p.marketPriceMode||'auto';
-  return `<tr><td><strong>${esc(p.name)}</strong><div class="muted small">${esc(p.category)}${p.hasCliche?` · ${p.width} × ${p.height} мм`:''}</div></td><td><input type="number" min="0" step="1" value="${Math.round(num(p.purchaseCost))}" data-edit="purchaseCost" data-id="${esc(p.id)}" aria-label="Закупочная себестоимость"></td><td><div class="mount-price-editor"><input type="number" min="0" step="1" value="${num(p.mountPrice)}" data-edit="mountPrice" data-id="${esc(p.id)}" aria-label="Розничная цена оснастки"><button type="button" class="btn" data-recalc-mount="${esc(p.id)}">${p.mountPriceMode==='manual'?'Вернуть цену по формуле':'Цена по формуле'}</button></div></td><td><input type="number" min="0" step="1" value="${num(p.clichePrice)}" data-edit="clichePrice" data-id="${esc(p.id)}" aria-label="Розничная цена клише"></td><td><input type="number" min="0" step="1" value="${num(p.servicePrice)}" data-edit="servicePrice" data-id="${esc(p.id)}" aria-label="Цена дополнительной услуги"></td><td><select data-market-mode="${esc(p.id)}" aria-label="Режим рыночной цены"><option value="auto" ${mode==='auto'?'selected':''}>По формуле</option><option value="adjustment" ${mode==='adjustment'?'selected':''}>Поправка ± ₽</option><option value="fixed" ${mode==='fixed'?'selected':''}>Фиксированная</option></select></td><td><input type="number" min="0" step="10" value="${num(p.marketPrice)}" data-edit="marketPrice" data-id="${esc(p.id)}" aria-label="Фиксированная рыночная цена" ${mode==='fixed'?'':'disabled'}></td><td><input type="number" step="10" value="${num(p.marketAdjustment)}" data-edit="marketAdjustment" data-id="${esc(p.id)}" aria-label="Рыночная поправка" ${mode==='adjustment'?'':'disabled'}></td><td><strong>${money(lineBasePrice(p))}</strong></td><td><div class="row"><button class="btn" data-edit-product="${esc(p.id)}">Править</button><button class="btn danger" data-delete-product="${esc(p.id)}">Удалить</button></div></td></tr>`;
+  return `<tr><td><strong>${esc(p.name)}</strong><div class="muted small">${esc(p.category)}${p.hasCliche?` · ${p.width} × ${p.height} мм`:''}</div></td><td><input type="number" min="0" step="1" value="${Math.round(num(p.purchaseCost))}" data-edit="purchaseCost" data-id="${esc(p.id)}" aria-label="Закупочная себестоимость"></td><td class="${p.mountPriceMode==='manual'?'manual-cell':''}"><div class="mount-price-editor"><input class="${p.mountPriceMode==='manual'?'manual-input':''}" type="number" min="0" step="1" value="${num(p.mountPrice)}" data-edit="mountPrice" data-id="${esc(p.id)}" aria-label="Розничная цена оснастки"><button type="button" class="btn" data-recalc-mount="${esc(p.id)}">${p.mountPriceMode==='manual'?'Вернуть цену по формуле':'Цена по формуле'}</button></div>${p.mountPriceMode==='manual'?'<div class="manual-hint">Ручная цена</div>':''}</td><td><input type="number" min="0" step="1" value="${num(p.clichePrice)}" data-edit="clichePrice" data-id="${esc(p.id)}" aria-label="Розничная цена клише"></td><td><input type="number" min="0" step="1" value="${num(p.servicePrice)}" data-edit="servicePrice" data-id="${esc(p.id)}" aria-label="Цена дополнительной услуги"></td><td><select data-market-mode="${esc(p.id)}" aria-label="Режим рыночной цены"><option value="auto" ${mode==='auto'?'selected':''}>По формуле</option><option value="adjustment" ${mode==='adjustment'?'selected':''}>Поправка ± ₽</option><option value="fixed" ${mode==='fixed'?'selected':''}>Фиксированная</option></select></td><td class="${mode==='fixed'?'manual-cell':''}"><input class="${mode==='fixed'?'manual-input':''}" type="number" min="0" step="10" value="${num(p.marketPrice)}" data-edit="marketPrice" data-id="${esc(p.id)}" aria-label="Фиксированная рыночная цена" ${mode==='fixed'?'':'disabled'}></td><td class="${mode==='adjustment'?'manual-cell':''}"><input class="${mode==='adjustment'?'manual-input':''}" type="number" step="10" value="${num(p.marketAdjustment)}" data-edit="marketAdjustment" data-id="${esc(p.id)}" aria-label="Рыночная поправка" ${mode==='adjustment'?'':'disabled'}></td><td><strong>${money(lineBasePrice(p))}</strong></td><td><div class="row"><button class="btn" data-edit-product="${esc(p.id)}">Править</button><button class="btn danger" data-delete-product="${esc(p.id)}">Удалить</button></div></td></tr>`;
  }).join('');
  document.getElementById('catalogCount').textContent=`Показано ${list.length} из ${state.products.length} позиций.`;
  document.getElementById('catalogRows').querySelectorAll('[data-edit]').forEach(el=>el.addEventListener('change',()=>{const p=productById(el.dataset.id);if(!p)return;const field=el.dataset.edit,oldValue=num(p[field]);p[field]=field==='purchaseCost'?Math.max(0,Math.round(num(el.value))):field==='marketPrice'?ceilTo(Math.max(0,num(el.value)),10):num(el.value);if(field==='mountPrice')p.mountPriceMode='manual';if(field==='purchaseCost'&&p.mountPriceMode!=='manual')p.mountPrice=calculatedMountPrice(p);if(field==='marketPrice'&&p.marketPriceMode==='fixed'&&p.marketPrice<=0){p.marketPrice=oldValue>0?oldValue:Math.max(10,lineBasePrice(p));toast('Фиксированная цена должна быть больше нуля. Предыдущее значение сохранено.')}refreshFinal(p);renderCatalog();updateSearch();renderOrder();saveLocal()}));
@@ -567,4 +569,30 @@ if('serviceWorker' in navigator && /^https?:$/.test(location.protocol)){navigato
     <p class="drive-update-footnote">Это окно не исчезнет, пока вы не загрузите данные.</p>
   </div>
 </div>
+<div id="appUpdateBanner" class="app-update-banner" role="status" aria-live="polite"><div class="update-copy">Доступна новая версия калькулятора.</div><button class="btn" id="appUpdateButton" type="button">Обновить калькулятор</button></div>
+<script>
+(()=>{
+ const versionMeta=document.querySelector('meta[name="app-version"]');
+ const currentVersion=versionMeta?.content||'unknown';
+ const banner=document.getElementById('appUpdateBanner');
+ const button=document.getElementById('appUpdateButton');
+ let checking=false, updateFound=false;
+ async function checkAppVersion(){
+  if(checking||document.visibilityState==='hidden')return;
+  checking=true;
+  try{
+   const url=new URL('index.html',location.href);url.searchParams.set('version_check',Date.now().toString());
+   const res=await fetch(url.href,{cache:'no-store',headers:{'Cache-Control':'no-cache'}});
+   if(!res.ok)return;
+   const html=await res.text();
+   const match=html.match(/<meta\s+name=["']app-version["']\s+content=["']([^"']+)["']/i);
+   if(match&&match[1]!==currentVersion){updateFound=true;banner?.classList.add('is-visible')}
+  }catch(e){/* проверка обновления не должна мешать работе калькулятора */}
+  finally{checking=false}
+ }
+ button?.addEventListener('click',()=>{if(updateFound){location.reload()}else{checkAppVersion()}});
+ setTimeout(checkAppVersion,5000);setInterval(checkAppVersion,60000);
+ document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')checkAppVersion()});
+})();
+</script>
 </body></html>
