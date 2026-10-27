@@ -44,7 +44,7 @@
 .drive-update-footnote{font-size:12px!important;margin:14px 0 0!important}
 @media(max-width:480px){.drive-update-dialog{padding:22px 18px;border-radius:16px}}
 
-.manual-cell{background:#fff0c2!important;box-shadow:inset 0 0 0 1px #e5ad36}.manual-input{background:#fff8df!important;border-color:#d99b19!important}.manual-hint{font-size:10px;font-weight:700;color:#8a5a00;margin-top:1px}.app-update-banner{position:fixed;z-index:100000;left:50%;bottom:18px;transform:translateX(-50%);width:min(560px,calc(100vw - 24px));background:#173a63;color:white;padding:15px 16px;border-radius:14px;box-shadow:0 10px 35px #0005;display:none;align-items:center;gap:12px}.app-update-banner.is-visible{display:flex}.app-update-banner .update-copy{flex:1;font-weight:650}.app-update-banner .btn{background:#fff;color:#173a63;white-space:nowrap}@media(max-width:520px){.app-update-banner{align-items:stretch;flex-direction:column}.app-update-banner .btn{width:100%}}
+.transfer-price{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-top:8px;padding:8px;border-radius:8px}.transfer-price label{font-size:12px}.transfer-price input{width:110px;max-width:100%}.manual-cell{background:#fff0c2!important;box-shadow:inset 0 0 0 1px #e5ad36}.manual-input{background:#fff8df!important;border-color:#d99b19!important}.manual-hint{font-size:10px;font-weight:700;color:#8a5a00;margin-top:1px}.app-update-banner{position:fixed;z-index:100000;left:50%;bottom:18px;transform:translateX(-50%);width:min(560px,calc(100vw - 24px));background:#173a63;color:white;padding:15px 16px;border-radius:14px;box-shadow:0 10px 35px #0005;display:none;align-items:center;gap:12px}.app-update-banner.is-visible{display:flex}.app-update-banner .update-copy{flex:1;font-weight:650}.app-update-banner .btn{background:#fff;color:#173a63;white-space:nowrap}@media(max-width:520px){.app-update-banner{align-items:stretch;flex-direction:column}.app-update-banner .btn{width:100%}}
 </style>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script src="https://apis.google.com/js/api.js" async defer></script>
@@ -219,7 +219,7 @@ function orderTotals(urgentOverride){
   const item=order[index],p=productById(item.id);if(!p)continue;
   const qty=Math.max(1,Math.floor(num(item.qty)||1)),mode=item.mode||'complete';
   const componentPrice=mode==='cliche'?ceilTo(num(p.clichePrice),10):mode==='mount'?ceilTo(num(p.mountPrice),10):lineBasePrice(p);
-  const transferUnit=mode==='mount'&&item.transfer?Math.max(0,num(state.settings.reinstallFee)):0;
+  const transferUnit=item.transfer?Math.max(0,num(item.transferFeeOverride??state.settings.reinstallFee)):0;
   const base=componentPrice*qty+transferUnit*qty;
   const clicheValue=(mode==='complete'||mode==='cliche')?num(p.clichePrice)*qty:0;
   const mountValue=(mode==='complete'||mode==='mount')?num(p.mountPrice)*qty:0;
@@ -356,13 +356,15 @@ function renderOrder(){
    const modeOptions=[`<option value="complete" ${l.mode==='complete'?'selected':''}>Готовая печать</option>`,...(l.p.hasCliche?[`<option value="cliche" ${l.mode==='cliche'?'selected':''}>Только клише</option>`,`<option value="mount" ${l.mode==='mount'?'selected':''}>Только оснастка</option>`]:[])].join('');
    const modeLabel=l.mode==='cliche'?'Клише':l.mode==='mount'?'Оснастка':'Готовая печать';
    const details=l.mode==='complete'?(l.p.hasCliche?`Клише ${money(l.p.clichePrice)} + оснастка ${money(l.p.mountPrice)}`:`Цена позиции ${money(l.unit)}`):l.mode==='cliche'?`Только клише · ${money(l.unit)}`:`Только оснастка · ${money(l.unit)}`;
-   const transfer=l.mode==='mount'&&l.p.hasCliche?`<label class="mode-switch small"><input type="checkbox" data-transfer="${l.index}" ${order[l.index]?.transfer?'checked':''}> Переустановка старого клише (+${money(state.settings.reinstallFee)})</label>`:'';
+   const transfer=l.p.hasCliche?`<div class="transfer-box ${order[l.index]?.transferFeeOverride!=null?'manual-cell':''}"><label class="mode-switch small"><input type="checkbox" data-transfer="${l.index}" ${order[l.index]?.transfer?'checked':''}> Переустановка клише (+${money(l.transferUnit||state.settings.reinstallFee)})</label>${order[l.index]?.transfer?`<div class="transfer-price ${order[l.index]?.transferFeeOverride!=null?'manual-cell':''}"><label>Стоимость переустановки, ₽</label><input class="${order[l.index]?.transferFeeOverride!=null?'manual-input':''}" type="number" min="0" step="10" value="${num(order[l.index]?.transferFeeOverride??state.settings.reinstallFee)}" data-transfer-price="${l.index}"><button type="button" class="btn" data-transfer-reset="${l.index}">Вернуть расчётную</button>${order[l.index]?.transferFeeOverride!=null?'<div class="manual-hint">Цена изменена вручную</div>':''}</div>`:''}</div>`:'';
    return `<div class="order-line"><div><h3>${esc(l.p.name)}</h3><div class="line-detail">${modeLabel} · ${details}${l.transferUnit?` · перенос ${money(l.transferUnit*l.qty)}`:''}${totals.pct>0?` · скидка ${money(l.discount)}`:''}</div><div class="field section-gap"><label>Вариант продажи</label><select class="search-input" data-mode="${l.index}">${modeOptions}</select></div>${transfer}</div><div class="field"><label>Кол-во</label><input class="qty" type="number" min="1" step="1" value="${l.qty}" data-qty="${l.index}"></div><div class="line-actions"><strong>${money(l.unit*l.qty)}</strong><button class="btn danger" data-remove="${l.index}" title="Удалить">Удалить</button></div></div>`;
   }).join(''):'<div class="empty">Найдите товар выше и добавьте его в заказ.</div>';
   linesEl.querySelectorAll('[data-qty]').forEach(el=>el.addEventListener('change',()=>{const item=order[Number(el.dataset.qty)];if(item)item.qty=Math.max(1,Math.floor(num(el.value)||1));renderOrder()}));
   linesEl.querySelectorAll('[data-remove]').forEach(el=>el.addEventListener('click',()=>removeLine(Number(el.dataset.remove))));
-  linesEl.querySelectorAll('[data-mode]').forEach(el=>el.addEventListener('change',()=>{const item=order[Number(el.dataset.mode)];if(item){item.mode=el.value;if(item.mode!=='mount')item.transfer=false;renderOrder()}}));
+  linesEl.querySelectorAll('[data-mode]').forEach(el=>el.addEventListener('change',()=>{const item=order[Number(el.dataset.mode)];if(item){item.mode=el.value;renderOrder()}}));
   linesEl.querySelectorAll('[data-transfer]').forEach(el=>el.addEventListener('change',()=>{const item=order[Number(el.dataset.transfer)];if(item){item.transfer=el.checked;renderOrder()}}));
+  linesEl.querySelectorAll('[data-transfer-price]').forEach(el=>el.addEventListener('change',()=>{const item=order[Number(el.dataset.transferPrice)];if(item){item.transferFeeOverride=Math.max(0,Math.round(num(el.value)));renderOrder()}}));
+  linesEl.querySelectorAll('[data-transfer-reset]').forEach(el=>el.addEventListener('click',()=>{const item=order[Number(el.dataset.transferReset)];if(item){delete item.transferFeeOverride;renderOrder();toast('Расчётная стоимость переустановки восстановлена')}}));
  }
  document.getElementById('lineCount').textContent=`Позиций: ${totals.lines.length} · единиц: ${totals.lines.reduce((a,l)=>a+l.qty,0)}`;
  document.getElementById('subtotal').textContent=money(totals.subtotalProducts);document.getElementById('discountAmount').textContent='−'+money(totals.discount);
@@ -452,8 +454,10 @@ function customerText(urgentVariant=false){
  if(!t.lines.length)return 'Заказ пока пуст.';
  const rows=[];
  for(const l of t.lines){
-  const customerName=String(l.p.name||'').replace(/^индивидуальная печать(?=\s)/i,'Индивидуальный штамп').replace(/^печать(?=\s)/i,'Штамп');
-  const label=l.mode==='cliche'?' — только клише':l.mode==='mount'?' — только оснастка':' — готовый штамп';
+  const originalName=String(l.p.name||'');
+  const customerName=originalName.replace(/^индивидуальная печать(?=\s)/i,'Индивидуальный штамп');
+  const isPrint=/^печать\b/i.test(originalName);
+  const label=l.mode==='cliche'?' — только клише':l.mode==='mount'?' — только оснастка':(isPrint?' — готовая печать':' — готовый штамп');
   rows.push(`${customerName}${label} — ${l.qty} × ${money(l.unit)} = ${money(l.unit*l.qty)}`);
   if(l.transferUnit>0)rows.push(`Переустановка старого клише — ${money(l.transferUnit*l.qty)}`);
  }
