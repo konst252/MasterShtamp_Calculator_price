@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="ru">
 <head>
-<meta name="app-version" content="21">
+<meta name="app-version" content="22">
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#173a63">
@@ -461,11 +461,9 @@ function customerText(urgentVariant=false){
  if(!t.lines.length)return 'Заказ пока пуст.';
  const rows=[];
  for(const l of t.lines){
-  const originalName=String(l.p.name||'');
-  const customerName=originalName.replace(/^индивидуальная печать(?=\s)/i,'Индивидуальный штамп');
-  const isPrint=/^печать\b/i.test(originalName);
-  const label=l.mode==='cliche'?' — только клише':l.mode==='mount'?' — только оснастка':(isPrint?' — готовая печать':' — готовый штамп');
-  rows.push(`${customerName}${label} — ${l.qty} × ${money(l.unit)} = ${money(l.unit*l.qty)}`);
+  const customerName=String(l.p.name||'');
+  const label=l.mode==='cliche'?' — только клише':l.mode==='mount'?' — только оснастка':'';
+  rows.push(`${customerName}${label} — ${l.qty} шт. × ${money(l.unit)} = ${money(l.unit*l.qty)}`);
   if(l.transferUnit>0)rows.push(`Переустановка старого клише — ${money(l.transferUnit*l.qty)}`);
  }
  if(t.layoutFee)rows.push(`Отрисовка макета — ${money(t.layoutFee)}`);
